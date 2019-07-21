@@ -44,67 +44,67 @@ bool lastBallIsFalling;
 
 // Try three times to get the firmware version number
 // which is saved as 'tfmp.version', a three byte array.
-void firmwareVersion()
-{
-    for( uint8_t fvi = 1; fvi < 4; ++fvi)
-    {
-        if( tfmP.sendCommand( OBTAIN_FIRMWARE_VERSION, 0))
-        {
+void firmwareVersion() {
+  
+    for( uint8_t fvi = 1; fvi < 4; ++fvi) {
+      
+        if( tfmP.sendCommand( OBTAIN_FIRMWARE_VERSION, 0)) {
+          
             // If successful, display the version number...
-            printf( "Lidar firmware version: %1u.%1u.%1u\r\n",
-                tfmP.version[ 0], tfmP.version[ 1], tfmP.version[ 2]);
+            printf( "Lidar firmware version: %1u.%1u.%1u\r\n", tfmP.version[ 0], tfmP.version[ 1], tfmP.version[ 2]);
             break;      // and brreak out of loop.
         }
-        else
-        {
+        
+        else {
+          
             // If not successful, display the attempt number
             // and the error: HEADER, CHERCKSUM, SERIAL, tec.
             printf( "Get firmware version failed. "); // Display error message...
             printf( "Attempt: %u", fvi);              // attempt number..
             tfmP.printStatus( false);                 // and error status.
             printf("\r\n");
+            
         }
         delay(100);  // Wait to try again
     }
 }
 
-void factoryReset()
-{
+void factoryReset() {
+  
     printf( "Lidar factory reset ");
-    if( tfmP.sendCommand( RESTORE_FACTORY_SETTINGS, 0))
-    {
+    if( tfmP.sendCommand( RESTORE_FACTORY_SETTINGS, 0)) {
+      
         printf( "passed.\r\n");
     }
-    else
-    {
+    else {
+      
         printf( "failed.");
         tfmP.printStatus( false);
     }
 }
 
-void frameRate( uint16_t rate)
-{
+void frameRate( uint16_t rate) {
+  
     printf( "Lidar frame rate ");
-    if( tfmP.sendCommand( SET_FRAME_RATE, rate))
-    {
+    if( tfmP.sendCommand( SET_FRAME_RATE, rate)) {
+      
         printf( "set to %2uHz.\r\n", rate);
     }
-    else
-    {
+    
+    else {
+      
         printf( "command failed.");
         tfmP.printStatus( false);
     }
 }
 
-void saveSettings()
-{
+void saveSettings() {
+  
     printf( "Lidar device settings ");
-    if( tfmP.sendCommand( SAVE_SETTINGS, 0))
-    {
+    if( tfmP.sendCommand( SAVE_SETTINGS, 0)) {
         printf( "saved.\r\n");
     }
-    else
-    {
+    else {
         printf( "not saved.");
         tfmP.printStatus( false);
     }
@@ -112,8 +112,8 @@ void saveSettings()
 
 /*  - - -   End of useful Lidar commands   - - - -   */
 
-void setup()
-{
+void setup() {
+  
     Serial.begin( 115200);   // Intialize terminal serial port
     delay(20);               // Give port time to initalize
     printf_begin();          // Initialize printf.
@@ -141,27 +141,34 @@ void setup()
 }
 
 // Use the 'getData' function to pass back device data.
-void loop()
-{
+void loop() {
+
+  long timeStamp = millis();
+  
   // 1. On each loop, try up to five tries to get a good data frame.
-  for( uint8_t fvi = 1; fvi < 6; ++fvi)
-  {
+  for( uint8_t fvi = 1; fvi < 6; ++fvi) {
+    
       // printf( "Loop:%02u", loopCount);           // Display the loop count.
-      if( tfmP.getData( tfDist, tfFlux, tfTemp)) // Get data from the device.
-      {
+      
+      if( tfmP.getData( tfDist, tfFlux, tfTemp)) { // Get data from the device.
+        
         if (tfDist < 110) {
+          
           if (ballIsFalling == false) {
-            startMs = millis();
+            startMs = timeStamp;
             ballIsFalling = true;
+            loopCount = 0;
           }
-          printf( " Loop:%05u time: %07u Dist:%04u\r\n", loopCount, (int) (millis() - startMs), tfDist);           // Display the distance.
+          
+          printf( " Loop:%05u time: %07u Dist:%04u\r\n", loopCount, (int) (timeStamp - startMs), tfDist);           // Display the distance.
+          
         } else {
+          
           ballIsFalling = false;
         }
         break;                                   // Escape this sub-loop
-      }
-      else                        // If the command fails...
-      {
+        
+      } else {                       // If the command fails...
         tfmP.printStatus( true);  // display the error.
       }
   }
@@ -186,5 +193,11 @@ void loop()
   // 3. Finish up and advance the loop counter
   // printf("\r\n");  // Send CR/LF to terminal
   loopCount++;
-  delay(10);       // Delay to match the 100Hz data frame rate.
+
+  long expectedTimeMs = startMs + loopCount * 10;
+  
+  //printf(" The delay time:%07u\n", delayTimeMs);
+  
+  while (millis() < expectedTimeMs);
+  
 }
