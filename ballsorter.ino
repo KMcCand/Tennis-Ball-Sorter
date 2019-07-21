@@ -36,6 +36,9 @@ uint16_t tfDist;       // Distance measurement in centimeters (default)
 uint16_t tfFlux;       // Luminous flux or intensity of return signal
 uint16_t tfTemp;       // Temperature in degrees Centigrade (coded)
 uint16_t loopCount;    // Loop counter (1-20)
+unsigned long startMs;
+bool ballIsFalling;
+bool lastBallIsFalling;
 
 /*  - - - - -  A few useful Lidar commands    - - - - - */
 
@@ -134,6 +137,7 @@ void setup()
     tfTemp = 0;
 
     delay(500);            // And wait for half a second.
+    startMs = millis();
 }
 
 // Use the 'getData' function to pass back device data.
@@ -142,10 +146,18 @@ void loop()
   // 1. On each loop, try up to five tries to get a good data frame.
   for( uint8_t fvi = 1; fvi < 6; ++fvi)
   {
-      printf( "Loop:%02u", loopCount);           // Display the loop count.
+      // printf( "Loop:%02u", loopCount);           // Display the loop count.
       if( tfmP.getData( tfDist, tfFlux, tfTemp)) // Get data from the device.
       {
-        printf( " Dist:%04u", tfDist);           // Display the distance.
+        if (tfDist < 110) {
+          if (ballIsFalling == false) {
+            startMs = millis();
+            ballIsFalling = true;
+          }
+          printf( " Loop:%05u time: %07u Dist:%04u\r\n", loopCount, (int) (millis() - startMs), tfDist);           // Display the distance.
+        } else {
+          ballIsFalling = false;
+        }
         break;                                   // Escape this sub-loop
       }
       else                        // If the command fails...
@@ -155,7 +167,7 @@ void loop()
   }
 
   // 2. Every twenty loops, show the two additional values.
-  if( loopCount >= 20)
+  /*if( loopCount >= 20)
   {
     // Display signal strength in arbitrary units.
     printf( " Flux:%05u", tfFlux);
@@ -170,9 +182,9 @@ void loop()
 
     loopCount = 0;                   // Reset loop counter.
   }
-
+*/
   // 3. Finish up and advance the loop counter
-  printf("\r\n");  // Send CR/LF to terminal
+  // printf("\r\n");  // Send CR/LF to terminal
   loopCount++;
   delay(10);       // Delay to match the 100Hz data frame rate.
 }
