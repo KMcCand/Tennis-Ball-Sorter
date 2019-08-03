@@ -32,6 +32,17 @@ TFMPlus tfmP;         // Create a TFMini Plus object
 //#include <SoftwareSerial.h>       // alternative software serial library
 //SoftwareSerial mySerial(10, 11);  // Choose the correct RX, TX Pins
 
+
+#define BALL_GOING_UP 0
+#define BALL_GOING_DOWN 1
+#define BALL_NOT_IN_PLAY 2
+#define BEYOND_TUBE_LENGTH 180
+#define MILLIS_BETWEEN_FRAMES 2
+#define NOISE_THRESHOLD 2
+
+int ballState = BALL_NOT_IN_PLAY;
+long maxDist = 0;
+long minDist = BEYOND_TUBE_LENGTH; // the tube is 120 cm tall
 uint16_t tfDist;       // Distance measurement in centimeters (default)
 uint16_t tfFlux;       // Luminous flux or intensity of return signal
 uint16_t tfTemp;       // Temperature in degrees Centigrade (coded)
@@ -126,7 +137,7 @@ void setup() {
 
     // Send commands to device during setup.
     firmwareVersion();
-    frameRate(100);
+    frameRate(500); 
     //saveSettings();
     //factoryReset();
 
@@ -160,7 +171,7 @@ void loop() {
             loopCount = 0;
           }
           
-          printf( " Loop:%05u time: %07u Dist:%04u\r\n", loopCount, (int) (timeStamp - startMs), tfDist);           // Display the distance.
+          //printf( " Loop:%05u time: %07u Dist:%04u\r\n", loopCount, (int) (timeStamp - startMs), tfDist);           // Display the distance.
           
         } else {
           
@@ -170,7 +181,45 @@ void loop() {
         
       } else {                       // If the command fails...
         tfmP.printStatus( true);  // display the error.
+        tfDist = -1;
       }
+  }
+
+  if (tfDist >= 0) {
+
+    //printf( "tfDist: %d\n", tfDist);
+
+    if (ballState == BALL_NOT_IN_PLAY && tfDist < 20) {
+      
+      ballState = BALL_GOING_DOWN;
+      printf ( "Ball entered tube and is going down!!!!!!!!\n");
+      maxDist = 0;
+      minDist = BEYOND_TUBE_LENGTH;
+    }
+    
+    else if (ballState == BALL_GOING_DOWN) {
+      printf( "tfDist: %d\n", tfDist);
+      
+      if  (tfDist > maxDist) {
+        maxDist = tfDist;
+      }
+      else if (maxDist - tfDist > NOISE_THRESHOLD) {
+        ballState = BALL_GOING_UP;
+        printf ( "Ball bounced and is going up!!!!!\n");
+      }
+    }
+    
+    else if (ballState == BALL_GOING_UP) {
+       printf( "tfDist: %d\n", tfDist);
+      
+       if (tfDist < minDist) {
+         minDist = tfDist;
+       }
+         ballState = BALL_NOT_IN_PLAY;
+         printf( "Ball reached max and bounced up to: %d\nBall is no longer in play.\n", minDist);
+       }
+       
+    }
   }
 
   // 2. Every twenty loops, show the two additional values.
@@ -194,7 +243,7 @@ void loop() {
   // printf("\r\n");  // Send CR/LF to terminal
   loopCount++;
 
-  long expectedTimeMs = startMs + loopCount * 10;
+  long expectedTimeMs = startMs + loopCount * MILLIS_BETWEEN_FRAMES;
   
   //printf(" The delay time:%07u\n", delayTimeMs);
   
