@@ -1,3 +1,5 @@
+#include <LiquidCrystal_I2C.h>
+
 /* File Name: TFMP_example.ino
  * Developer: Bud Ryerson
  * Inception: 29 JAN 2019
@@ -38,7 +40,8 @@ TFMPlus tfmP;         // Create a TFMini Plus object
 #define BALL_NOT_IN_PLAY 2
 #define BEYOND_TUBE_LENGTH 180
 #define MILLIS_BETWEEN_FRAMES 2
-#define NOISE_THRESHOLD 2
+#define NOISE_THRESHOLD 5
+#define GREEN_LED_PIN 8
 
 int ballState = BALL_NOT_IN_PLAY;
 long maxDist = 0;
@@ -50,6 +53,13 @@ uint16_t loopCount;    // Loop counter (1-20)
 unsigned long startMs;
 bool ballIsFalling;
 bool lastBallIsFalling;
+
+
+char array1[]=" SunFounder               "; //the string to print on the LCD
+char array2[]="hello, world!             "; //the string to print on the LCD
+int tim = 500; //the value of delay time
+// initialize the library with the numbers of the interface pins
+LiquidCrystal_I2C lcd(0x27,16,2); // set the LCD address to 0x27 for a 16 chars and 2 line display
 
 /*  - - - - -  A few useful Lidar commands    - - - - - */
 
@@ -147,8 +157,22 @@ void setup() {
     tfFlux = 0;
     tfTemp = 0;
 
+    pinMode(GREEN_LED_PIN, OUTPUT);
+    greenOff();
+
     delay(500);            // And wait for half a second.
     startMs = millis();
+
+    lcd.init(); //initialize the lcd
+    lcd.backlight(); //open the backlight 
+}
+
+void greenOn() {
+  digitalWrite(GREEN_LED_PIN, HIGH);
+}
+
+void greenOff() {
+  digitalWrite(GREEN_LED_PIN, LOW);
 }
 
 // Use the 'getData' function to pass back device data.
@@ -180,6 +204,7 @@ void loop() {
         break;                                   // Escape this sub-loop
         
       } else {                       // If the command fails...
+        printf( "getData failed. The reason:\n");
         tfmP.printStatus( true);  // display the error.
         tfDist = -1;
       }
@@ -188,17 +213,24 @@ void loop() {
   if (tfDist >= 0) {
 
     //printf( "tfDist: %d\n", tfDist);
-
+    String s = String(tfDist) + "    ";
+    //lcd.clear();
+    lcd.setCursor(1,0); // set the cursor to column 15, line 0
+    lcd.print(s);
+    
     if (ballState == BALL_NOT_IN_PLAY && tfDist < 20) {
-      
+
+      greenOn();
       ballState = BALL_GOING_DOWN;
       printf ( "Ball entered tube and is going down!!!!!!!!\n");
+      //lcd.setCursor(1,0); // set the cursor to column 15, line 0
+      //lcd.print(s);
       maxDist = 0;
       minDist = BEYOND_TUBE_LENGTH;
     }
     
     else if (ballState == BALL_GOING_DOWN) {
-      printf( "tfDist: %d\n", tfDist);
+      //printf( "tfDist: %d\n", tfDist);
       
       if  (tfDist > maxDist) {
         maxDist = tfDist;
@@ -210,13 +242,18 @@ void loop() {
     }
     
     else if (ballState == BALL_GOING_UP) {
-       printf( "tfDist: %d\n", tfDist);
+       //printf( "tfDist: %d\n", tfDist);
       
        if (tfDist < minDist) {
          minDist = tfDist;
        }
+       else if (tfDist - minDist > NOISE_THRESHOLD) {
          ballState = BALL_NOT_IN_PLAY;
          printf( "Ball reached max and bounced up to: %d\nBall is no longer in play.\n", minDist);
+         greenOff();
+         String s = String(minDist);
+         lcd.setCursor(1,0); // set the cursor to column 15, line 0
+         lcd.print(s);
        }
        
     }
@@ -239,8 +276,28 @@ void loop() {
     loopCount = 0;                   // Reset loop counter.
   }
 */
+
+  /*
+  lcd.setCursor(15,0); // set the cursor to column 15, line 0
+  for (int positionCounter1 = 0; positionCounter1 < 26; positionCounter1++) {
+    //lcd.scrollDisplayLeft(); //Scrolls the contents of the display one space to the left.
+    lcd.print(array1[positionCounter1]); // Print a message to the LCD.
+    delay(tim); //wait for 250 microseconds
+  }
+  
+  lcd.clear(); //Clears the LCD screen and positions the cursor in the upper-left  corner.
+  lcd.setCursor(15,1); // set the cursor to column 15, line 1
+  for (int positionCounter = 0; positionCounter < 26; positionCounter++) {
+    //lcd.scrollDisplayLeft(); //Scrolls the contents of the display one space to the left.
+    lcd.print(array2[positionCounter]); // Print a message to the LCD.
+    delay(tim); //wait for 250 microseconds
+  }
+  
+  lcd.clear(); //Clears the LCD screen and positions the cursor in the upper-left corner.
   // 3. Finish up and advance the loop counter
   // printf("\r\n");  // Send CR/LF to terminal
+  */
+  
   loopCount++;
 
   long expectedTimeMs = startMs + loopCount * MILLIS_BETWEEN_FRAMES;
