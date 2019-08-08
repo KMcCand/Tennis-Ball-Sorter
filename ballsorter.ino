@@ -212,12 +212,16 @@ void loop() {
 
   if (tfDist >= 0) {
 
-    //printf( "tfDist: %d\n", tfDist);
-    String s = String(tfDist) + "    ";
-    //lcd.clear();
-    lcd.setCursor(1,0); // set the cursor to column 15, line 0
-    lcd.print(s);
-    
+      //printf( "tfDist: %d\n", tfDist);
+      //lcd.clear();
+      if (loopCount % 5 == 0) {
+       lcd.setCursor(1, 0); // set the cursor to column 1, line 0
+       lcd.print("                ");
+       String s = String(tfDist) + "    ";
+       lcd.setCursor(1, 0); // set the cursor to column 1, line 0
+       lcd.print(s );
+      }
+      
     if (ballState == BALL_NOT_IN_PLAY && tfDist < 20) {
 
       greenOn();
@@ -252,8 +256,8 @@ void loop() {
          printf( "Ball reached max and bounced up to: %d\nBall is no longer in play.\n", minDist);
          greenOff();
          String s = String(minDist);
-         lcd.setCursor(1,0); // set the cursor to column 15, line 0
-         lcd.print(s);
+         lcd.setCursor(1, 1); // set the cursor to column 1, line 1
+         lcd.print("Min: " + s + "     ");
        }
        
     }
